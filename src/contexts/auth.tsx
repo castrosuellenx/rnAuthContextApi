@@ -1,6 +1,6 @@
 import React, {createContext, useState, useEffect, useContext} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-//import api from '../services/api';
+import api from '../services/api';
 import * as auth from '../services/auth';
 
 interface User {
@@ -23,18 +23,25 @@ export const AuthProvider: React.FC = ({children}) => {
 
   useEffect(() => {
     async function loadStoragedData() {
-      const storagedUser = await AsyncStorage.getItem('@Auth:user');
-      const storagedToken = await AsyncStorage.getItem('@Auth:token');
+      try {
+        const storagedUser = await AsyncStorage.getItem('@Auth:user');
+        const storagedToken = await AsyncStorage.getItem('@Auth:token');
+        //throw new Error('Deu um erro!');
+        if (storagedUser && storagedToken) {
+          api.defaults.headers.common[
+            'Authorization'
+          ] = `Bearer ${storagedToken}`;
+          console.log(api.defaults.headers);
 
-      if (storagedUser && storagedToken) {
-        //api.defaults.headers.Authorization = `Bearer ${storagedToken}`;
-
-        setUser(JSON.parse(storagedUser));
+          setUser(JSON.parse(storagedUser));
+        }
+      } catch (error) {
+        console.log(error);
+      } finally {
         setLoading(false);
       }
     }
 
-    //setLoading(false);
     loadStoragedData();
   }, []);
 
@@ -43,7 +50,7 @@ export const AuthProvider: React.FC = ({children}) => {
 
     setUser(response.user);
 
-    //api.defaults.headers.Authorization = `Bearer ${response.token}`;
+    api.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
 
     await AsyncStorage.setItem('@Auth:user', JSON.stringify(response.user));
     await AsyncStorage.setItem('@Auth:token', response.token);
